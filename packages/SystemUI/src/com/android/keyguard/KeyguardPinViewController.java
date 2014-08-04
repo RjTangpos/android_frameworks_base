@@ -18,17 +18,26 @@ package com.android.keyguard;
 
 import android.view.View;
 
+import androidx.constraintlayout.widget.ConstraintLayout;
+
 import com.android.internal.util.LatencyTracker;
 import com.android.internal.widget.LockPatternUtils;
 import com.android.keyguard.KeyguardSecurityModel.SecurityMode;
 import com.android.systemui.R;
 import com.android.systemui.classifier.FalsingCollector;
+import com.android.systemui.Dependency;
 import com.android.systemui.flags.FeatureFlags;
 import com.android.systemui.flags.Flags;
 import com.android.systemui.statusbar.policy.DevicePostureController;
+import com.android.systemui.tuner.TunerService;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 public class KeyguardPinViewController
-        extends KeyguardPinBasedInputViewController<KeyguardPINView> {
+        extends KeyguardPinBasedInputViewController<KeyguardPINView> implements TunerService.Tunable {
     private final KeyguardUpdateMonitor mKeyguardUpdateMonitor;
     private final DevicePostureController mPostureController;
     private final DevicePostureController.Callback mPostureCallback = posture ->
@@ -43,6 +52,12 @@ public class KeyguardPinViewController
     private long mPinLength;
 
     private boolean mDisabledAutoConfirmation;
+
+    private final String LOCKSCREEN_PIN_SCRAMBLE_LAYOUT = "system:lockscreen_pin_scramble_layout";
+
+    private boolean mScramblePin;
+    private List<Integer> mNumbers = new ArrayList<>(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 0));
+    private final List<Integer> mDefaultNumbers = new ArrayList<>(mNumbers);
 
     protected KeyguardPinViewController(KeyguardPINView view,
             KeyguardUpdateMonitor keyguardUpdateMonitor,
@@ -83,6 +98,44 @@ public class KeyguardPinViewController
             mPasswordEntry.setUsePinShapes(true);
             updateAutoConfirmationState();
         }
+        Dependency.get(TunerService.class).addTunable(this, LOCKSCREEN_PIN_SCRAMBLE_LAYOUT);
+    }
+
+    @Override
+    public void onTuningChanged(String key, String newValue) {
+        switch (key) {
+            case LOCKSCREEN_PIN_SCRAMBLE_LAYOUT:
+                mScramblePin = TunerService.parseIntegerSwitch(newValue, false);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void updatePinScrambling() {
+        if (mScramblePin) {
+            Collections.shuffle(mNumbers);
+        } else {
+            mNumbers.clear();
+            mNumbers.addAll(mDefaultNumbers);
+        }
+
+        // get all children who are NumPadKey's
+        ConstraintLayout container = mView.findViewById(R.id.pin_container);
+
+        List<NumPadKey> views = new ArrayList<>();
+        for (int i = 0; i < container.getChildCount(); i++) {
+            View view = container.getChildAt(i);
+            if (view instanceof NumPadKey) {
+                views.add((NumPadKey) view);
+            }
+        }
+
+        // reset the digits in the views
+        int i = 0;
+        for (NumPadKey view : views) {
+            view.setDigit(mNumbers.get(i++));
+        }
     }
 
     protected void onUserInput() {
@@ -104,6 +157,7 @@ public class KeyguardPinViewController
 
     @Override
     public void startAppearAnimation() {
+        updatePinScrambling();
         super.startAppearAnimation();
     }
 
