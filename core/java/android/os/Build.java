@@ -1345,10 +1345,8 @@ public class Build {
      * @hide
      */
     public static boolean isBuildConsistent() {
-        // set to persist.sys.skip_consistency_check_for_debug_builds=true to skip check
-        final boolean skipConsistencyCheckforDebug = SystemProperties.getBoolean("persist.sys.skip_consistency_check_for_debug_builds", true);
         // Don't care on eng builds.  Incremental build may trigger false negative.
-        if (IS_ENG || IS_USER || IS_USERDEBUG && skipConsistencyCheckforDebug) return true;
+        /*if (IS_ENG) return true;
 
         if (IS_TREBLE_ENABLED) {
             // If we can run this code, the device should already pass AVB.
@@ -1361,6 +1359,7 @@ public class Build {
             }
 
             return result == 0;
+            return true;
         }
 
         final String system = SystemProperties.get("ro.system.build.fingerprint");
@@ -1383,7 +1382,7 @@ public class Build {
                         + " but vendor reported " + vendor);
                 return false;
             }
-        }
+        } */
 
         /* TODO: Figure out issue with checks failing
         if (!TextUtils.isEmpty(bootimage)) {
