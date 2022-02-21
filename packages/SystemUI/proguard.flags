@@ -11,3 +11,7 @@
 
 -keep,allowoptimization,allowaccessmodification class com.android.systemui.dagger.DaggerReferenceGlobalRootComponent** { !synthetic *; }
 -keep,allowoptimization,allowaccessmodification class com.android.systemui.tv.DaggerTvGlobalRootComponent** { !synthetic *; }
+
+-keep class * implements com.android.systemui.biometrics.UdfpsDisplayModeProvider {
+    public <init>(...);
+}
