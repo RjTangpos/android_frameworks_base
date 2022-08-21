@@ -24,6 +24,8 @@ import static android.hardware.biometrics.BiometricOverlayConstants.REASON_AUTH_
 import static android.hardware.biometrics.BiometricOverlayConstants.REASON_ENROLL_ENROLLING;
 import static android.hardware.biometrics.BiometricOverlayConstants.REASON_ENROLL_FIND_SENSOR;
 
+import static android.hardware.biometrics.BiometricFingerprintConstants.FINGERPRINT_ACQUIRED_VENDOR;
+
 import static com.android.internal.util.Preconditions.checkNotNull;
 import static com.android.systemui.classifier.Classifier.UDFPS_AUTHENTICATION;
 import static com.android.systemui.flags.Flags.ONE_WAY_HAPTICS_API_MIGRATION;
@@ -222,6 +224,7 @@ public class UdfpsController implements DozeReceiver, Dumpable {
     private boolean mOnFingerDown;
     private boolean mAttemptedToDismissKeyguard;
     private final Set<Callback> mCallbacks = new HashSet<>();
+    private final int mUdfpsVendorCode;
 
     private boolean mFrameworkDimming;
     private int[][] mBrightnessAlphaArray;
@@ -307,7 +310,7 @@ public class UdfpsController implements DozeReceiver, Dumpable {
         @Override
         public void onAcquired(
                 int sensorId,
-                @BiometricFingerprintConstants.FingerprintAcquired int acquiredInfo
+                @BiometricFingerprintConstants.FingerprintAcquired int acquiredInfo, int vendorCode
         ) {
             if (BiometricFingerprintConstants.shouldDisableUdfpsDisplayMode(acquiredInfo)) {
                 boolean acquiredGood = acquiredInfo == FINGERPRINT_ACQUIRED_GOOD;
@@ -324,6 +327,16 @@ public class UdfpsController implements DozeReceiver, Dumpable {
                     }
                     tryAodSendFingerUp();
                 });
+            } else {
+                boolean acquiredVendor = acquiredInfo == FINGERPRINT_ACQUIRED_VENDOR;
+                if (!acquiredVendor || (!mStatusBarStateController.isDozing() && mScreenOn)) {
+                    return;
+                }
+                if (vendorCode == mUdfpsVendorCode) {
+                    mPowerManager.wakeUp(mSystemClock.uptimeMillis(),
+                            PowerManager.WAKE_REASON_GESTURE, TAG);
+                    onAodInterrupt(0, 0, 0, 0);
+                }
             }
         }
 
@@ -946,6 +959,7 @@ public class UdfpsController implements DozeReceiver, Dumpable {
         mFrameworkDimming = mContext.getResources().getBoolean(com.android.systemui.R.bool.config_udfpsFrameworkDimming);
         mFrameworkDimmingDelay = mContext.getResources().getInteger(com.android.systemui.R.integer.config_udfpsDimmingDisableDelay);
         parseBrightnessAlphaArray();
+        mUdfpsVendorCode = mContext.getResources().getInteger(com.android.systemui.R.integer.config_udfpsVendorCode);
     }
 
     /**
