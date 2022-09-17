@@ -200,7 +200,6 @@ public class InternetDialog extends SystemUIDialog implements
         mCanConfigWifi = canConfigWifi;
         mCanChangeWifiState = WifiEnterpriseRestrictionUtils.isChangeWifiStateAllowed(context);
         mKeyguard = keyguardStateController;
-
         mUiEventLogger = uiEventLogger;
         mDialogLaunchAnimator = dialogLaunchAnimator;
         mAdapter = new InternetAdapter(mInternetDialogController);
