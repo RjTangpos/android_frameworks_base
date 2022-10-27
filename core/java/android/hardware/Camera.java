@@ -272,7 +272,7 @@ public class Camera {
          * if the package name does not falls in this bucket
          */
         String packageName = ActivityThread.currentOpPackageName();
-        
+
         if (packageName == null || packageName.isEmpty()) {
             Context applicationContext = ActivityThread.currentApplication().getApplicationContext();
             packageName = applicationContext.getPackageName();
@@ -283,6 +283,9 @@ public class Camera {
             // return early instead of parsing the aux list with an empty string ("") package name
             return true;
         }
+
+    	if (packageName == null)
+    	    return true;
 
         List<String> packageList = Arrays.asList(
                 SystemProperties.get("vendor.camera.aux.packagelist", packageName).split(","));
