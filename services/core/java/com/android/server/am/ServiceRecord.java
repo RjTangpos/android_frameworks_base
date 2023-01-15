@@ -65,6 +65,7 @@ import com.android.server.uri.NeededUriGrants;
 import com.android.server.uri.UriPermissionOwner;
 
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -112,6 +113,8 @@ final class ServiceRecord extends Binder implements ComponentName.WithComponentN
     private final ArrayMap<IBinder, ArrayList<ConnectionRecord>> connections
             = new ArrayMap<IBinder, ArrayList<ConnectionRecord>>();
                             // IBinder -> ConnectionRecord of all bound clients
+
+    private final boolean mShouldIgnoreForegroundNotification;
 
     ProcessRecord app;      // where this service is running or null.
     ProcessRecord isolationHostProc; // process which we've started for this service (used for
@@ -877,6 +880,7 @@ final class ServiceRecord extends Binder implements ComponentName.WithComponentN
         sdkSandboxClientAppUid = 0;
         sdkSandboxClientAppPackage = null;
         inSharedIsolatedProcess = false;
+        mShouldIgnoreForegroundNotification = false;
     }
 
     public static ServiceRecord newEmptyInstanceForTest(ActivityManagerService ams) {
@@ -907,6 +911,8 @@ final class ServiceRecord extends Binder implements ComponentName.WithComponentN
         appInfo = sInfo.applicationInfo;
         packageName = sInfo.applicationInfo.packageName;
         this.isSdkSandbox = sdkSandboxClientAppUid != INVALID_UID;
+        mShouldIgnoreForegroundNotification = Arrays.asList(ams.mContext.getResources().getStringArray(
+                com.android.internal.R.array.config_postNotificationIgnoredApps)).contains(packageName);
         this.sdkSandboxClientAppUid = sdkSandboxClientAppUid;
         this.sdkSandboxClientAppPackage = sdkSandboxClientAppPackage;
         this.inSharedIsolatedProcess = inSharedIsolatedProcess;
@@ -1332,7 +1338,7 @@ final class ServiceRecord extends Binder implements ComponentName.WithComponentN
     }
 
     public void postNotification(boolean byForegroundService) {
-        if (isForeground && foregroundNoti != null && app != null) {
+        if (isForeground && foregroundNoti != null && app != null && !mShouldIgnoreForegroundNotification) {
             final int appUid = appInfo.uid;
             final int appPid = app.getPid();
             // Do asynchronous communication with notification manager to
