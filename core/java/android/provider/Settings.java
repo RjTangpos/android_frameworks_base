@@ -6222,6 +6222,13 @@ public final class Settings {
         public static final String QS_HEADER_CUSTOM_IMAGE_URI = "qs_header_custom_image_uri";
 
         /**
+         * QS panel tile haptics intensity
+         * @hide
+         */
+        @Readable
+        public static final String QS_PANEL_TILE_HAPTIC = "qs_panel_tile_haptic";
+
+        /**
          * Keys we no longer back up under the current schema, but want to continue to
          * process when restoring historical backup datasets.
          *
@@ -12121,10 +12128,31 @@ public final class Settings {
         public static final String QS_BRIGHTNESS_SLIDER_POSITION = "qs_brightness_slider_position";
 
         /**
-         * Whether or not to vibrate when back gesture is used
+         * Edge scrolling haptics intensity
          * @hide
          */
-        public static final String BACK_GESTURE_HAPTIC = "back_gesture_haptic";
+        @Readable
+        public static final String EDGE_SCROLLING_HAPTICS_INTENSITY = "edge_scrolling_haptics_intensity";
+
+        /**
+         * Brightness sliding haptics intensity
+         * @hide
+         */
+        @Readable
+        public static final String BRIGHTNESS_SLIDER_HAPTICS_INTENSITY = "brightness_slider_haptics_intensity";
+
+        /**
+         * Volume sliding haptics intensity
+         * @hide
+         */
+        @Readable
+        public static final String VOLUME_SLIDER_HAPTICS_INTENSITY = "volume_slider_haptics_intensity";
+
+        /**
+         * Back gesture haptics intensity
+         * @hide
+         */
+        public static final String BACK_GESTURE_HAPTIC_INTENSITY = "back_gesture_haptic_intensity";
 
         /**
          * Keys we no longer back up under the current schema, but want to continue to

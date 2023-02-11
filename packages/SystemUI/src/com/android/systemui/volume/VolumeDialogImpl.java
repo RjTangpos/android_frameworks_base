@@ -80,6 +80,7 @@ import android.media.MediaPlayer;
 import android.media.session.MediaController;
 import android.media.session.MediaSessionManager;
 import android.media.session.PlaybackState;
+import android.os.AsyncTask;
 import android.os.Debug;
 import android.os.Handler;
 import android.os.Looper;
@@ -3070,7 +3071,10 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                             userLevel);
                 }
             }
-            playSound();
+            mHandler.post(() -> {
+                playSound();
+                triggerVibration();
+            });
         }
 
         @Override
@@ -3113,6 +3117,31 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         } catch (Exception e) {
             Log.d(TAG, "Error playing sound effect");
         }
+    }
+
+    private void triggerVibration() {
+        int vibrateIntensity = Settings.Secure.getInt(mContext.getContentResolver(),
+                    Settings.Secure.VOLUME_SLIDER_HAPTICS_INTENSITY, 1);
+        if (mController == null || vibrateIntensity == 0) {
+            return;
+        }
+            VibrationEffect effect;
+            switch (vibrateIntensity) {
+                case 1:
+                    effect = VibrationEffect.createPredefined(VibrationEffect.EFFECT_TEXTURE_TICK);
+                    break;
+                case 2:
+                    effect = VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK);
+                    break;
+                case 3:
+                    effect = VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK);
+                    break;
+                default:
+                    effect = VibrationEffect.createPredefined(VibrationEffect.EFFECT_TEXTURE_TICK);
+                    break;
+            }
+
+        AsyncTask.execute(() -> mController.vibrate(effect));
     }
 
     private final class Accessibility extends AccessibilityDelegate {

@@ -45,8 +45,8 @@ public interface NavigationEdgeBackPlugin extends Plugin {
     /** Sets the callback that should be invoked when a Back gesture is detected. */
     void setBackCallback(BackCallback callback);
 
-    /** Specifies if the arrow animation is shown for back gesture. */
-    default void setEdgeHapticEnabled(boolean edgeHapticEnabled) {}
+    /** Specifies if the edge haptic intensity for back gesture. */
+    default void setEdgeHapticIntensity(int edgeHapticIntensity) {}
 
     /** Sets the base LayoutParams for the UI. */
     void setLayoutParams(WindowManager.LayoutParams layoutParams);
