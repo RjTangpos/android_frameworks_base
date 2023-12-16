@@ -2855,7 +2855,7 @@ public final class ProcessList {
         return true;
     }
 
-    private static void freezeBinderAndPackageCgroup(ArrayList<Pair<ProcessRecord, Boolean>> procs,
+    private static void freezeBinderAndPackageCgroup(List<Pair<ProcessRecord, Boolean>> procs,
                                                      int packageUID) {
         // Freeze all binder processes under the target UID (whose cgroup is about to be frozen).
         // Since we're going to kill these, we don't need to unfreze them later.
@@ -2863,12 +2863,9 @@ public final class ProcessList {
         // processes (forks) should not be Binder users.
         int N = procs.size();
         for (int i = 0; i < N; i++) {
-            final int uid = procs.get(i).first.uid;
             final int pid = procs.get(i).first.getPid();
             int nRetries = 0;
-            // We only freeze the cgroup of the target package, so we do not need to freeze the
-            // Binder interfaces of dependant processes in other UIDs.
-            if (pid > 0 && uid == packageUID) {
+            if (pid > 0) {
                 try {
                     int rc;
                     do {
@@ -2886,6 +2883,14 @@ public final class ProcessList {
         // not frozen, since it's possible this would freeze processes with no dependency on the
         // package being killed here.
         freezePackageCgroup(packageUID, true);
+    }
+
+    private static List<Pair<ProcessRecord, Boolean>> getUserIdSublist(
+            List<Pair<ProcessRecord, Boolean>> procs, int startIdx) {
+        final int userId = procs.get(startIdx).first.userId;
+        int endIdx = startIdx + 1;
+        while (endIdx < procs.size() && procs.get(endIdx).first.userId == userId) ++endIdx;
+        return procs.subList(startIdx, endIdx);
     }
 
     @GuardedBy({"mService", "mProcLock"})
@@ -2983,25 +2988,32 @@ public final class ProcessList {
             }
         }
 
-        final int packageUID = UserHandle.getUid(userId, appId);
         final boolean doFreeze = appId >= Process.FIRST_APPLICATION_UID
                               && appId <= Process.LAST_APPLICATION_UID;
-        if (doFreeze) {
-            freezeBinderAndPackageCgroup(procs, packageUID);
+
+        if (doFreeze && userId == UserHandle.USER_ALL) {
+            procs.sort((o1, o2) -> Integer.compare(o1.first.userId, o2.first.userId));
         }
 
-        int N = procs.size();
-        for (int i=0; i<N; i++) {
-            final Pair<ProcessRecord, Boolean> proc = procs.get(i);
-            removeProcessLocked(proc.first, callerWillRestart, allowRestart || proc.second,
-                    reasonCode, subReason, reason, !doFreeze /* async */);
+        int idx = 0;
+        while (idx < procs.size()) {
+            List<Pair<ProcessRecord, Boolean>> userProcs = getUserIdSublist(procs, idx);
+            final int packageUID = UserHandle.getUid(userProcs.get(0).first.userId, appId);
+
+            if (doFreeze) freezeBinderAndPackageCgroup(userProcs, packageUID);
+
+            for (Pair<ProcessRecord, Boolean> proc : userProcs) {
+                removeProcessLocked(proc.first, callerWillRestart, allowRestart || proc.second,
+                        reasonCode, subReason, reason, !doFreeze /* async */);
+            }
+            killAppZygotesLocked(packageName, appId, userId, false /* force */);
+
+            if (doFreeze) freezePackageCgroup(packageUID, false);
+
+            idx += userProcs.size();
         }
-        killAppZygotesLocked(packageName, appId, userId, false /* force */);
         mService.updateOomAdjLocked(OOM_ADJ_REASON_PROCESS_END);
-        if (doFreeze) {
-            freezePackageCgroup(packageUID, false);
-        }
-        return N > 0;
+        return procs.size() > 0;
     }
 
     @GuardedBy("mService")
