@@ -759,7 +759,8 @@ public class InputManagerService extends IInputManager.Stub
         final int pid = Binder.getCallingPid();
         final int uid = Binder.getCallingUid();
         final String callingPackage = mContext.getPackageManager().getNameForUid(uid);
-        if (callingPackage != null && !callingPackage.toLowerCase().contains("google") && !checkCallingPermission(android.Manifest.permission.MONITOR_INPUT,
+        if (callingPackage != null && !callingPackage.toLowerCase().contains("google") 
+            && !callingPackage.toLowerCase().contains("nothing.launcher") && !checkCallingPermission(android.Manifest.permission.MONITOR_INPUT,
                 "monitorGestureInput()")) {
             throw new SecurityException("Requires MONITOR_INPUT permission");
         }

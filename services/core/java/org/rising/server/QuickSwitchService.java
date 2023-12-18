@@ -18,6 +18,7 @@ package org.rising.server;
 
 import static android.os.Process.THREAD_PRIORITY_DEFAULT;
 
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -52,7 +53,8 @@ public final class QuickSwitchService extends SystemService {
 
     private static final List<String> LAUNCHER_PACKAGES = List.of(
         "com.android.launcher3",
-        "com.google.android.apps.nexuslauncher"
+        "com.google.android.apps.nexuslauncher",
+        "com.nothing.launcher"
     );
 
     private static final String TAG = "QuickSwitchService";
@@ -66,6 +68,8 @@ public final class QuickSwitchService extends SystemService {
 
     private ServiceThread mWorker;
     private Handler mHandler;
+    
+    private boolean forceStopExecuted = false;
 
     public static boolean shouldHide(int userId, String packageName) {
         return packageName != null && getDisabledDefaultLaunchers().contains(packageName);
@@ -150,6 +154,19 @@ public final class QuickSwitchService extends SystemService {
         init();
     }
 
+    @Override
+    public void onBootPhase(int phase) {
+        super.onBootPhase(phase);
+        if (phase == SystemService.PHASE_BOOT_COMPLETED) {
+            // rmp: as mnri said during discussion, some users may unlock quickly after device boots, 
+            // try to force stop conflicting launchers at this point, the force stop check is 
+            // done through UnlockReceiver so this is a safe call
+            forceStopConflictingLaunchers();
+            IntentFilter filter = new IntentFilter(Intent.ACTION_USER_PRESENT);
+            mContext.registerReceiver(new UnlockReceiver(), filter);
+        }
+    }
+
     public QuickSwitchService(Context context) {
         super(context);
         mContext = context;
@@ -159,14 +176,40 @@ public final class QuickSwitchService extends SystemService {
         mOpPackageName = context.getOpPackageName();
     }
 
+    private void forceStopConflictingLaunchers() {
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                ActivityManager am = (ActivityManager) mContext.getSystemService(Context.ACTIVITY_SERVICE);
+                // TODO: improve this. nothing launcher needs force stop for recents activity to work.. 
+                String nothingLauncherPackageName = "com.nothing.launcher";
+                int defaultLauncher = SystemProperties.getInt("persist.sys.default_launcher", 0);
+                if (defaultLauncher == 2) {
+                    am.forceStopPackage(nothingLauncherPackageName);
+                }
+            }
+        }, 5000); 
+    }
+
     private final class UserReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
             int userId = intent.getIntExtra(Intent.EXTRA_USER_HANDLE, -1);
-
             if (Intent.ACTION_USER_ADDED.equals(intent.getAction())) {
                 initForUser(userId);
+                forceStopConflictingLaunchers();
             }
         }
     }
+    
+    private class UnlockReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (Intent.ACTION_USER_PRESENT.equals(intent.getAction()) && !forceStopExecuted) {
+                forceStopConflictingLaunchers();
+                forceStopExecuted = true;
+            }
+        }
+    }
+
 }

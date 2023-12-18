@@ -129,13 +129,29 @@ public class DefaultAppProvider {
      * @return whether the default home was set
      */
     public boolean setDefaultHome(@NonNull String packageName, @UserIdInt int userId,
-            @NonNull Executor executor, @NonNull Consumer<Boolean> callback) {
+                                  @NonNull Executor executor, @NonNull Consumer<Boolean> callback) {
         final RoleManager roleManager = mRoleManagerSupplier.get();
+        int defaultLauncher = SystemProperties.getInt("persist.sys.default_launcher", 0);
+        String[] defaultLaunchers = {
+                "com.android.launcher3",
+                "com.google.android.apps.nexuslauncher",
+                "com.nothing.launcher"
+        };
         if (roleManager == null) {
             return false;
         }
         final long identity = Binder.clearCallingIdentity();
         try {
+            boolean isDefaultLauncher = false;
+            for (String launcher : defaultLaunchers) {
+                if (packageName.equals(launcher)) {
+                    isDefaultLauncher = true;
+                    break;
+                }
+            }
+            if (isDefaultLauncher) {
+                packageName = defaultLaunchers[defaultLauncher];
+            }
             roleManager.addRoleHolderAsUser(RoleManager.ROLE_HOME, packageName, 0,
                     UserHandle.of(userId), executor, callback);
         } finally {
@@ -147,13 +163,12 @@ public class DefaultAppProvider {
     @Nullable
     private String getRoleHolder(@NonNull String roleName, @NonNull int userId) {
         final RoleManager roleManager = mRoleManagerSupplier.get();
-        int defaultLauncher = SystemProperties.getInt("persist.sys.default_launcher", 0);
         if (roleManager == null) {
             return null;
         }
         final long identity = Binder.clearCallingIdentity();
         try {
-            return roleName == RoleManager.ROLE_HOME ? (defaultLauncher == 0 ? "com.android.launcher3" : "com.google.android.apps.nexuslauncher") : CollectionUtils.firstOrNull(roleManager.getRoleHoldersAsUser(roleName,
+            return CollectionUtils.firstOrNull(roleManager.getRoleHoldersAsUser(roleName,
                     UserHandle.of(userId)));
         } finally {
             Binder.restoreCallingIdentity(identity);
