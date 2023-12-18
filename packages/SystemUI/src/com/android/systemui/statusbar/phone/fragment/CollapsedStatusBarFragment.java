@@ -602,7 +602,7 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
         boolean showOngoingCallChip = mOngoingCallController.hasOngoingCall() && !headsUpVisible;
         return new StatusBarVisibilityModel(
                 showClock,
-                externalModel.getShowNotificationIcons(),
+                externalModel.getShowNotificationIcons() && !headsUpVisible,
                 showOngoingCallChip,
                 externalModel.getShowSystemInfo());
     }
@@ -615,9 +615,11 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
         StatusBarVisibilityModel visibilityModel = mLastModifiedVisibility;
         boolean disableNotifications = !visibilityModel.getShowNotificationIcons();
         boolean hasOngoingCall = visibilityModel.getShowOngoingCallChip();
+        boolean headsUpVisible =
+                mStatusBarFragmentComponent.getHeadsUpAppearanceController().shouldBeVisible();
 
         // Hide notifications if the disable flag is set or we have an ongoing call.
-        if (disableNotifications || hasOngoingCall) {
+        if (disableNotifications || hasOngoingCall || headsUpVisible) {
             hideNotificationIconArea(animate);
         } else {
             showNotificationIconArea(animate);
