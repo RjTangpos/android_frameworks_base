@@ -152,6 +152,8 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
     private final KeyguardUpdateMonitor mKeyguardUpdateMonitor;
 
     private int mShowSBClockBg;
+    private int mClockPaddingStart;
+    private int mClockPaddingEnd;
     private BatteryMeterView mBatteryMeterView;
     private StatusIconContainer mStatusIcons;
     private int mSignalClusterEndPadding = 0;
@@ -351,6 +353,9 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
 
         mCollapsedStatusBarViewBinder.bind(
                 mStatusBar, mCollapsedStatusBarViewModel, mStatusBarVisibilityChangeListener);
+        mClockPaddingStart = mClockView.getPaddingStart();
+        mClockPaddingEnd = mClockView.getPaddingEnd();
+        applyChipBg((TextView) mClockView, mShowSBClockBg > 0);
     }
 
     @Override
@@ -384,6 +389,7 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
         }
 
         mMainExecutor.execute(() -> mDarkIconManager.setBlockList(mBlockedIcons));
+        applyChipBg((TextView) mClockView, mShowSBClockBg > 0);
     }
 
     @VisibleForTesting
@@ -447,50 +453,33 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
 
     @Override
     public void onTuningChanged(String key, String newValue) {
+        if (getContext() == null) return;
         switch (key) {
             case STATUSBAR_CLOCK_CHIP:
                 mShowSBClockBg = 
                         TunerService.parseInteger(newValue, 0);
-                updateStatusBarClock();
+                applyChipBg((TextView) mClockView, mShowSBClockBg > 0);
                 break;
             default:
                 break;
          }
     }
 
-    private void updateStatusBarClock() {
-        if (mShowSBClockBg > 0) {
-            applyChipBg(mClockView);
-        } else {
-            restoreDefaultClock(mClockView);
-        }
-    }
-
-    private void applyChipBg(View v) {
+    private void applyChipBg(TextView v, boolean enable) {
         if (v == null) return;
-        if (v instanceof TextView) {
-            int originalPaddingStart = v.getPaddingStart();
-            int originalPaddingEnd = v.getPaddingEnd();
+        if (enable) {
             String chipStyleUri = "sb_date_bg" + String.valueOf(mShowSBClockBg);
             int resId = getContext().getResources().getIdentifier(chipStyleUri, "drawable", "com.android.systemui");
+            int chipTopBottomPadding = getResources().getDimensionPixelSize(
+                    R.dimen.status_bar_clock_chip_tb_padding);
+            int chipLRPadding = getResources().getDimensionPixelSize(
+                    R.dimen.status_bar_clock_chip_lr_padding);
             v.setBackgroundResource(resId);
-            v.setPadding(12, 4, 12, 4);
-            v.setClipToOutline(true);
-            v.setTag(R.id.tag_original_padding_start, originalPaddingStart);
-            v.setTag(R.id.tag_original_padding_end, originalPaddingEnd);
+            v.setPadding(12, chipTopBottomPadding, 12, chipTopBottomPadding);
             v.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-        }
-    }
-
-    private void restoreDefaultClock(View v) {
-        if (v == null) return;
-        if (v instanceof TextView) {
+        } else {
             v.setBackgroundResource(0);
-            Integer startTag = (Integer) v.getTag(R.id.tag_original_padding_start);
-            Integer endTag = (Integer) v.getTag(R.id.tag_original_padding_end);
-            int originalPaddingStart = startTag != null ? startTag.intValue() : v.getPaddingStart();
-            int originalPaddingEnd = endTag != null ? endTag.intValue() : v.getPaddingEnd();
-            v.setPadding(originalPaddingStart, 0, originalPaddingEnd, 0);
+            v.setPaddingRelative(mClockPaddingStart, 0, mClockPaddingEnd, 0);
             v.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
         }
     }
@@ -578,6 +567,7 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
                 hideClock(animate);
             }
         }
+        applyChipBg((TextView) mClockView, mShowSBClockBg > 0);
     }
 
     private StatusBarVisibilityModel calculateInternalModel(
@@ -635,6 +625,7 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
             hideOngoingCallChip(animate);
         }
         mOngoingCallController.notifyChipVisibilityChanged(showOngoingCallChip);
+        applyChipBg((TextView) mClockView, mShowSBClockBg > 0);
     }
 
     private boolean shouldHideStatusBar() {
