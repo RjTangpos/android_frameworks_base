@@ -161,13 +161,13 @@
     <dimen name="status_bar_left_clock_end_padding">2sp</dimen>
 
     <!-- Spacing after the wifi signals that is present if there are any icons following it. -->
-    <dimen name="status_bar_wifi_signal_spacer_width">2.5sp</dimen>
+    <dimen name="status_bar_wifi_signal_spacer_width">4.5sp</dimen>
 
     <!-- Size of the view displaying the wifi inout icon in the status bar. -->
     <dimen name="status_bar_wifi_inout_container_size">17sp</dimen>
     <!-- Size of the view displaying the wifi signal icon in the status bar. This value should
         match the core/status_bar_system_icon_size and change to sp unit -->
-    <dimen name="status_bar_wifi_signal_size">15sp</dimen>
+    <dimen name="status_bar_wifi_signal_size">18.5sp</dimen>
 
     <!-- Size of the view displaying the mobile inout icon in the status bar. -->
     <dimen name="status_bar_mobile_inout_container_size">17sp</dimen>
