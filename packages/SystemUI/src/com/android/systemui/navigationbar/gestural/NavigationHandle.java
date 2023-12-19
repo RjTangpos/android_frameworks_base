@@ -28,16 +28,25 @@ import android.view.ContextThemeWrapper;
 import android.view.View;
 
 import com.android.settingslib.Utils;
+import com.android.systemui.Dependency;
 import com.android.systemui.R;
 import com.android.systemui.navigationbar.buttons.ButtonInterface;
+import com.android.systemui.tuner.TunerService;
 
-public class NavigationHandle extends View implements ButtonInterface {
+public class NavigationHandle extends View implements ButtonInterface, TunerService.Tunable {
+
+    private static final String GESTURE_NAVBAR_LENGTH_MODE =
+            "system:" + "gesture_navbar_length_mode";
+    private static final String GESTURE_NAVBAR_RADIUS =
+            "system:" + "gesture_navbar_radius";
 
     protected final Paint mPaint = new Paint();
     private @ColorInt final int mLightColor;
     private @ColorInt final int mDarkColor;
-    protected final float mRadius;
+    protected float mRadius;
     protected final float mBottom;
+    private int mRadiusMultiplier;
+    private int mWidthMultiplier;
     private boolean mRequiresInvalidate;
 
     public NavigationHandle(Context context) {
@@ -47,7 +56,6 @@ public class NavigationHandle extends View implements ButtonInterface {
     public NavigationHandle(Context context, AttributeSet attr) {
         super(context, attr);
         final Resources res = context.getResources();
-        mRadius = res.getDimension(R.dimen.navigation_handle_radius);
         mBottom = res.getDimension(R.dimen.navigation_handle_bottom);
 
         final int dualToneDarkTheme = Utils.getThemeAttr(context, R.attr.darkIconTheme);
@@ -58,6 +66,16 @@ public class NavigationHandle extends View implements ButtonInterface {
         mDarkColor = Utils.getColorAttrDefaultColor(darkContext, R.attr.homeHandleColor);
         mPaint.setAntiAlias(true);
         setFocusable(false);
+        Dependency.get(TunerService.class).addTunable(this, GESTURE_NAVBAR_LENGTH_MODE, GESTURE_NAVBAR_RADIUS);
+    }
+
+    @Override
+    public void onTuningChanged(String key, String newValue) {
+        if (GESTURE_NAVBAR_LENGTH_MODE.equals(key)) {
+            mWidthMultiplier = TunerService.parseInteger(newValue, 3);
+        } else if (GESTURE_NAVBAR_RADIUS.equals(key)) {
+            mRadiusMultiplier = TunerService.parseInteger(newValue, 1);
+        }
     }
 
     @Override
@@ -72,13 +90,18 @@ public class NavigationHandle extends View implements ButtonInterface {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
-        // Draw that bar
         int navHeight = getHeight();
-        float height = mRadius * 2;
-        int width = getWidth();
+        int navWidth = getWidth();
+        float baseWidth = getResources().getDimensionPixelSize(R.dimen.navigation_home_handle_width);
+        float baseRadius = getResources().getDimensionPixelSize(R.dimen.navigation_handle_radius);
+        float[] widthRange = {0, 0.66f, 1.3f};
+        float widthMultiplier = widthRange[Math.min(mWidthMultiplier, widthRange.length - 1)];
+        int mWidth = widthMultiplier == 0 ? 0 : (int) Math.ceil(baseWidth * widthMultiplier);
+        mRadius = baseRadius * mRadiusMultiplier;
+        float height = widthMultiplier == 0 ? 0 : mRadius * 2;
+        float x = (navWidth - mWidth) / 2;
         float y = (navHeight - mBottom - height);
-        canvas.drawRoundRect(0, y, width, y + height, mRadius, mRadius, mPaint);
+        canvas.drawRoundRect(x, y, x + mWidth, y + height, mRadius, mRadius, mPaint);
     }
 
     @Override

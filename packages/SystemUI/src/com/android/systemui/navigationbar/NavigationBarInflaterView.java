@@ -46,12 +46,13 @@ import com.android.systemui.navigationbar.buttons.ReverseLinearLayout;
 import com.android.systemui.navigationbar.buttons.ReverseLinearLayout.ReverseRelativeLayout;
 import com.android.systemui.recents.OverviewProxyService;
 import com.android.systemui.shared.system.QuickStepContract;
+import com.android.systemui.tuner.TunerService;
 
 import java.io.PrintWriter;
 import java.lang.ref.WeakReference;
 import java.util.Objects;
 
-public class NavigationBarInflaterView extends FrameLayout {
+public class NavigationBarInflaterView extends FrameLayout implements TunerService.Tunable {
     private static final String TAG = "NavBarInflater";
 
     public static final String NAV_BAR_VIEWS = "sysui_nav_bar";
@@ -103,6 +104,11 @@ public class NavigationBarInflaterView extends FrameLayout {
 
     private final Listener mListener;
 
+    private static final String GESTURE_NAVBAR_LENGTH_MODE =
+            "system:" + "gesture_navbar_length_mode";
+    private static final String GESTURE_NAVBAR_RADIUS =
+            "system:" + "gesture_navbar_radius";
+
     protected LayoutInflater mLayoutInflater;
     protected LayoutInflater mLandscapeInflater;
 
@@ -121,6 +127,7 @@ public class NavigationBarInflaterView extends FrameLayout {
 
     private OverviewProxyService mOverviewProxyService;
     private int mNavBarMode = NAV_BAR_MODE_3BUTTON;
+    private int mNavBarWidth = 0;
 
     public NavigationBarInflaterView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -137,6 +144,16 @@ public class NavigationBarInflaterView extends FrameLayout {
         landscape.setTo(mContext.getResources().getConfiguration());
         landscape.orientation = Configuration.ORIENTATION_LANDSCAPE;
         mLandscapeInflater = LayoutInflater.from(mContext.createConfigurationContext(landscape));
+    }
+
+    @Override
+    public void onTuningChanged(String key, String newValue) {
+        if (GESTURE_NAVBAR_LENGTH_MODE.equals(key)) {
+            mNavBarWidth = TunerService.parseInteger(newValue, 3);
+            onLikelyDefaultLayoutChange();
+        } else if (GESTURE_NAVBAR_RADIUS.equals(key)) {
+            onLikelyDefaultLayoutChange();
+        }
     }
 
     @Override
@@ -178,8 +195,15 @@ public class NavigationBarInflaterView extends FrameLayout {
     }
 
     @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        Dependency.get(TunerService.class).addTunable(this, GESTURE_NAVBAR_LENGTH_MODE, GESTURE_NAVBAR_RADIUS);
+    }
+
+    @Override
     protected void onDetachedFromWindow() {
         Dependency.get(NavigationModeController.class).removeListener(mListener);
+        Dependency.get(TunerService.class).removeTunable(this);
         super.onDetachedFromWindow();
     }
 
@@ -411,6 +435,25 @@ public class NavigationBarInflaterView extends FrameLayout {
             v = inflater.inflate(R.layout.contextual, parent, false);
         } else if (HOME_HANDLE.equals(button)) {
             v = inflater.inflate(R.layout.home_handle, parent, false);
+            ViewGroup.LayoutParams lp = v.getLayoutParams();
+            float navWidth = getResources().getDimensionPixelSize(R.dimen.navigation_home_handle_width);
+            if (mNavBarWidth >= 0 && mNavBarWidth <= 3) {
+                switch (mNavBarWidth) {
+                    case 0:
+                        lp.width = 0;
+                        break;
+                    case 1:
+                        lp.width = (int) Math.ceil(navWidth * 0.66f);
+                        break;
+                    case 2:
+                        lp.width = (int) Math.ceil(navWidth);
+                        break;
+                    case 3:
+                        lp.width = (int) Math.ceil(navWidth * 1.33f);
+                        break;
+                }
+            }
+            v.setLayoutParams(lp);
         } else if (IME_SWITCHER.equals(button)) {
             v = inflater.inflate(R.layout.ime_switcher, parent, false);
         } else if (button.startsWith(KEY)) {
