@@ -411,7 +411,7 @@ public final class PhantomProcessList {
     private void scheduleTrimPhantomProcessesLocked() {
         if (!mTrimPhantomProcessScheduled) {
             mTrimPhantomProcessScheduled = true;
-            mService.mHandler.post(() -> trimPhantomProcessesIfNecessary(mService.mConstants.getMaxCachedProcesses()));
+            mService.mHandler.post(() -> trimPhantomProcessesIfNecessary(mService.mConstants.getMaxCachedProcesses() / 10));
         }
     }
 

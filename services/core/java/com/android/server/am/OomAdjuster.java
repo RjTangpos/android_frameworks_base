@@ -461,7 +461,7 @@ public class OomAdjuster {
         mTmpQueue = new ArrayDeque<ProcessRecord>(mConstants.CUR_MAX_CACHED_PROCESSES << 1);
         mNumSlots = ((CACHED_APP_MAX_ADJ - CACHED_APP_MIN_ADJ + 1) >> 1)
                 / CACHED_APP_IMPORTANCE_LEVELS;
-        mBServiceAppThreshold = (mConstants.CUR_MAX_CACHED_PROCESSES / 4);
+        mBServiceAppThreshold = (mConstants.CUR_MAX_CACHED_PROCESSES / 10);
     }
 
     void initSettings() {
