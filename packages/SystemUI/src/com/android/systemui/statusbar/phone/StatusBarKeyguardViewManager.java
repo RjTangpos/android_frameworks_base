@@ -1416,20 +1416,19 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
 
     /** Display security message to relevant KeyguardMessageArea. */
     public void setKeyguardMessage(String message, ColorStateList colorState) {
-        if (message.equals(mContext.getString(R.string.face_unlock_recognizing))) {
-            FaceUnlockImageView.setBouncerState(FaceUnlockImageView.State.SCANNING);
-        } else if (message.equals(mContext.getString(R.string.kg_face_not_recognized))) {
-            FaceUnlockImageView.setBouncerState(FaceUnlockImageView.State.NOT_VERIFIED);
-        } else {
-            // there is no success message on keyguard bouncer
-            FaceUnlockImageView.setBouncerState(FaceUnlockImageView.State.HIDDEN);
-        }
-        if (mAlternateBouncerInteractor.isVisibleState()) {
-            if (mKeyguardMessageAreaController != null) {
-                mKeyguardMessageAreaController.setMessage(message);
+        if (message != null) {
+            if (mAlternateBouncerInteractor.isVisibleState()) {
+                if (mKeyguardMessageAreaController != null) {
+                    mKeyguardMessageAreaController.setMessage(message);
+                }
+            } else {
+                mPrimaryBouncerInteractor.showMessage(message, colorState);
             }
-        } else {
-            mPrimaryBouncerInteractor.showMessage(message, colorState);
+            if (message.equals(mContext.getString(R.string.face_unlock_recognizing))) {
+                FaceUnlockImageView.setBouncerState(FaceUnlockImageView.State.SCANNING);
+            } else if (message.equals(mContext.getString(R.string.kg_face_not_recognized))) {
+                FaceUnlockImageView.setBouncerState(FaceUnlockImageView.State.NOT_VERIFIED);
+            }
         }
     }
 
