@@ -16,7 +16,7 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="quick_settings_extra_tiles" translatable="false">
-        smartpixels,aod,refresh_rate,sound,caffeine,sync
+        smartpixels,aod,refresh_rate,sound,caffeine,sync,usb_tether
     </string>
     <!-- Smart Pixels QS Tile -->
     <string name="quick_settings_smart_pixels">Smart Pixels</string>
@@ -47,4 +47,7 @@
     <string name="quick_settings_sync_label">Sync</string>
     <string name="accessibility_quick_settings_sync_off">Sync off.</string>
     <string name="accessibility_quick_settings_sync_on">Sync on.</string>
+    
+    <!-- USB tethering QS tile -->
+    <string name="quick_settings_usb_tether_label">USB tethering</string>
 </resources>
