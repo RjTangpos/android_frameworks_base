@@ -365,6 +365,10 @@
     <protected-broadcast android:name="com.android.systemui.STARTED" />
     <protected-broadcast android:name="com.android.systemui.doze.pulse" />
 
+    <!-- QS Tiles -->
+    <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
+    <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
+
     <!-- Permission required to bind to the wm shell proxy service. -->
     <permission android:name="com.android.systemui.permission.BIND_WM_SHELL_PROXY_SERVICE"
         android:protectionLevel="signature" />

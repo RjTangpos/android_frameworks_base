@@ -22,6 +22,7 @@ import com.android.systemui.qs.tiles.CaffeineTile
 import com.android.systemui.qs.tiles.RefreshRateTile
 import com.android.systemui.qs.tiles.SmartPixelsTile
 import com.android.systemui.qs.tiles.SoundTile
+import com.android.systemui.qs.tiles.SyncTile
 
 import dagger.Binds
 import dagger.Module
@@ -52,7 +53,13 @@ interface QsTileModule {
     @IntoMap
     @StringKey(SmartPixelsTile.TILE_SPEC)
     fun bindSmartPixelsTile(smartPixelsTile: SmartPixelsTile): QSTileImpl<*>
-    
+
+    /** Inject SyncTile into tileMap in QSModule */
+    @Binds
+    @IntoMap
+    @StringKey(SyncTile.TILE_SPEC)
+    fun bindSyncTile(syncTile: SyncTile): QSTileImpl<*>
+
     /** Inject SoundTile into tileMap in QSModule */
     @Binds
     @IntoMap

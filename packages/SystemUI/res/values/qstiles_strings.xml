@@ -16,7 +16,7 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="quick_settings_extra_tiles" translatable="false">
-        smartpixels,aod,refresh_rate,sound,caffeine
+        smartpixels,aod,refresh_rate,sound,caffeine,sync
     </string>
     <!-- Smart Pixels QS Tile -->
     <string name="quick_settings_smart_pixels">Smart Pixels</string>
@@ -42,4 +42,9 @@
     <string name="quick_settings_caffeine_label">Caffeine</string>
     <string name="accessibility_quick_settings_caffeine_off">Caffeine off.</string>
     <string name="accessibility_quick_settings_caffeine_on">Caffeine on.</string>
+    
+    <!-- Sync QS tile -->
+    <string name="quick_settings_sync_label">Sync</string>
+    <string name="accessibility_quick_settings_sync_off">Sync off.</string>
+    <string name="accessibility_quick_settings_sync_on">Sync on.</string>
 </resources>
