@@ -44,6 +44,16 @@ class WifiStandardImageView @JvmOverloads constructor(
         showWifiStandard()
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        showWifiStandard()
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        unregisterNetworkCallback()
+    }
+
     private fun registerTunerService() {
         if (isTunerRegistered) return
         tunerService.addTunable({ key, value ->
@@ -124,8 +134,8 @@ class WifiStandardImageView @JvmOverloads constructor(
             }
         } catch (e: IllegalArgumentException) {
         } finally {
+            networkCallback = null
             isRegistered = false
         }
     }
-
 }
