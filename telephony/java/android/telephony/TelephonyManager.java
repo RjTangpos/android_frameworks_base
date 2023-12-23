@@ -17910,15 +17910,7 @@ public class TelephonyManager {
     @RequiresPermission(Manifest.permission.READ_PRIVILEGED_PHONE_STATE)
     @RequiresFeature(PackageManager.FEATURE_TELEPHONY_EUICC)
     public boolean isRemovableEsimDefaultEuicc() {
-        try {
-            ITelephony telephony = getITelephony();
-            if (telephony != null) {
-                return telephony.isRemovableEsimDefaultEuicc(getOpPackageName());
-            }
-        } catch (RemoteException e) {
-            Log.e(TAG, "Error in isRemovableEsimDefaultEuicc: " + e);
-        }
-        return false;
+        return SystemProperties.getBoolean("persist.sys.modem.removeable_esim_as_default", false);
     }
 
     /**
