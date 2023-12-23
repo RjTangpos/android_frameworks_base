@@ -497,22 +497,13 @@ public class EdgeBackGestureHandler implements PluginListener<NavigationEdgeBack
         if (mDisplaySize == null) {
             return;
         }
-        int edgeHeightSetting = Settings.System.getIntForUser(mContext.getContentResolver(),
+        int edgeHeightSetting = Settings.System.getIntForUser(
+                mContext.getContentResolver(),
                 Settings.System.BACK_GESTURE_HEIGHT, 0, UserHandle.USER_CURRENT);
-        // edgeHeigthSettings cant be range 0 - 3
-        // 0 means full height
-        // 1 measns half of the screen
-        // 2 means lower third of the screen
-        // 3 means lower sicth of the screen
-        if (edgeHeightSetting == 0) {
-            mEdgeHeight = mDisplaySize.y;
-        } else if (edgeHeightSetting == 1) {
-            mEdgeHeight = mDisplaySize.y / 2;
-        } else if (edgeHeightSetting == 2) {
-            mEdgeHeight = mDisplaySize.y / 3;
-        } else {
-            mEdgeHeight = mDisplaySize.y / 6;
-        }
+
+        int[] heights = {mDisplaySize.y, (mDisplaySize.y / 4) * 3, mDisplaySize.y / 2, mDisplaySize.y / 3};
+        edgeHeightSetting = Math.max(0, Math.min(edgeHeightSetting, heights.length - 1));
+        mEdgeHeight = heights[edgeHeightSetting];
     }
 
     public void setStateChangeCallback(Runnable callback) {
