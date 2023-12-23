@@ -28,6 +28,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.os.VibrationEffect;
@@ -137,7 +138,10 @@ public class NavigationBarEdgePanel extends View implements NavigationEdgeBackPl
             = new PathInterpolator(1.0f / RUBBER_BAND_AMOUNT_APPEAR, 1.0f, 1.0f, 1.0f);
 
     private final WindowManager mWindowManager;
+    
+    // Oplus based haptics
     private final VibratorHelper mVibratorHelper;
+    private boolean mEdgeHapticEnabled;
 
     /**
      * The paint the arrow is drawn with
@@ -437,6 +441,11 @@ public class NavigationBarEdgePanel extends View implements NavigationEdgeBackPl
         mWindowManager.addView(this, mLayoutParams);
     }
 
+    @Override
+    public void setEdgeHapticEnabled(boolean edgeHapticEnabled) {
+        mEdgeHapticEnabled = edgeHapticEnabled;
+    }
+
     /**
      * Adjusts the sampling rect to conform to the actual visible bounding box of the arrow.
      */
@@ -643,12 +652,6 @@ public class NavigationBarEdgePanel extends View implements NavigationEdgeBackPl
             mVelocityTracker = VelocityTracker.obtain();
         }
         mVelocityTracker.computeCurrentVelocity(1000);
-        // Only do the extra translation if we're not already flinging
-        boolean isSlow = Math.abs(mVelocityTracker.getXVelocity()) < 500;
-        if (isSlow
-                || SystemClock.uptimeMillis() - mVibrationTime >= GESTURE_DURATION_FOR_CLICK_MS) {
-            mVibratorHelper.vibrate(VibrationEffect.EFFECT_CLICK);
-        }
 
         // Let's also snap the angle a bit
         if (mAngleOffset > -4) {
@@ -743,8 +746,7 @@ public class NavigationBarEdgePanel extends View implements NavigationEdgeBackPl
         // Apply a haptic on drag slop passed
         if (!mDragSlopPassed && touchTranslation > mSwipeTriggerThreshold) {
             mDragSlopPassed = true;
-            mVibratorHelper.vibrate(VibrationEffect.EFFECT_TICK);
-            mVibrationTime = SystemClock.uptimeMillis();
+            triggerVibration(0);
 
             // Let's show the arrow and animate it in!
             mDisappearAmount = 0.0f;
@@ -879,7 +881,9 @@ public class NavigationBarEdgePanel extends View implements NavigationEdgeBackPl
     }
 
     private void setTriggerBack(boolean triggerBack, boolean animated) {
-        if (mTriggerBack != triggerBack) {
+        if (mTriggerBack == triggerBack) {
+            return;
+        }
             mTriggerBack = triggerBack;
             mAngleAnimation.cancel();
             updateAngle(animated);
@@ -887,7 +891,16 @@ public class NavigationBarEdgePanel extends View implements NavigationEdgeBackPl
             // cancelled
             mTranslationAnimation.cancel();
             mBackCallback.setTriggerBack(mTriggerBack);
+    }
+
+    private void triggerVibration(int effect) {
+        if (mVibratorHelper == null || !mEdgeHapticEnabled) {
+            return;
         }
+        int vibEffect = effect == 1 ? VibrationEffect.EFFECT_HEAVY_CLICK : VibrationEffect.EFFECT_CLICK;
+        AsyncTask.execute(
+                    () -> mVibratorHelper.vibrate(vibEffect));
+
     }
 
     private void updateAngle(boolean animated) {
