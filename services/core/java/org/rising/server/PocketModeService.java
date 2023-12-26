@@ -49,7 +49,18 @@ import com.android.server.SystemService;
 
 public class PocketModeService extends SystemService {
 
-    private static final long TIMEOUT_DELAY = 5000;
+    private static final float PROXIMITY_THRESHOLD = 1.0f;
+    private static final float LIGHT_THRESHOLD = 2.0f;
+    private static final float GRAVITY_THRESHOLD = -0.6f;
+    private static final int MIN_INCLINATION = 75;
+    private static final int MAX_INCLINATION = 100;
+    private static final long TIMEOUT_DELAY = 2500;
+    private long lastSensorEventTimestamp = 0;
+
+    private float[] gravityValues;
+    private float proximitySensorValue;
+    private float lightSensorValue;
+    private int inclinationAngle;
     
     private final Handler mTimeoutHandler = new Handler();
 
@@ -69,6 +80,8 @@ public class PocketModeService extends SystemService {
 
     private SensorManager mSensorManager;
     private Sensor mAccelerometerSensor;
+    private Sensor mProximitySensor;
+    private Sensor mLightSensor;
     boolean mIsInPocket;
     boolean mIsUnlocked;
     
@@ -202,6 +215,12 @@ public class PocketModeService extends SystemService {
             if (mAccelerometerSensor != null) {
                 mSensorManager.registerListener(mPocketModeListener, mAccelerometerSensor, POCKET_MODE_SENSOR_DELAY, mHandler);
             }
+            if (mProximitySensor != null) {
+                mSensorManager.registerListener(mPocketModeListener, mProximitySensor, POCKET_MODE_SENSOR_DELAY, mHandler);
+            }
+            if (mLightSensor != null) {
+                mSensorManager.registerListener(mPocketModeListener, mLightSensor, POCKET_MODE_SENSOR_DELAY, mHandler);
+            }
         }
     }
 
@@ -210,46 +229,72 @@ public class PocketModeService extends SystemService {
             mSensorManager.unregisterListener(mPocketModeListener);
         }
     }
-
+    
     private final SensorEventListener mPocketModeListener = new SensorEventListener() {
         @Override
-        public void onSensorChanged(SensorEvent event) {
-            handleSensorEvent(event);
+        public void onSensorChanged(SensorEvent sensorEvent) {
+            long currentTimestamp = System.currentTimeMillis();
+            if (currentTimestamp - lastSensorEventTimestamp < 100) {
+                return;
+            }
+            if (sensorEvent.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+                gravityValues = sensorEvent.values.clone();
+                double gravityMagnitude = Math.sqrt(
+                        gravityValues[0] * gravityValues[0] +
+                                gravityValues[1] * gravityValues[1] +
+                                gravityValues[2] * gravityValues[2]);
+
+                gravityValues[0] = (float) (gravityValues[0] / gravityMagnitude);
+                gravityValues[1] = (float) (gravityValues[1] / gravityMagnitude);
+                gravityValues[2] = (float) (gravityValues[2] / gravityMagnitude);
+
+                inclinationAngle = (int) Math.round(Math.toDegrees(Math.acos(gravityValues[2])));
+            }
+
+            if (sensorEvent.sensor.getType() == Sensor.TYPE_PROXIMITY) {
+                proximitySensorValue = sensorEvent.values[0];
+            }
+
+            if (sensorEvent.sensor.getType() == Sensor.TYPE_LIGHT) {
+                lightSensorValue = sensorEvent.values[0];
+            }
+
+            if (proximitySensorValue != -1 && lightSensorValue != -1 && inclinationAngle != -1 && gravityValues != null) {
+                detect(proximitySensorValue, lightSensorValue, gravityValues, inclinationAngle);
+            }
         }
 
         @Override
         public void onAccuracyChanged(Sensor sensor, int accuracy) {}
     };
 
-    private void handleSensorEvent(SensorEvent event) {
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            handleAccelerometerEvent(event.values[0], event.values[1], event.values[2]);
-        }
+    private float round(float value) {
+        return Math.round(value * 100.0) / 100.0f;
     }
 
-    private void handleAccelerometerEvent(float x, float y, float z) {
-        final float interactiveThresholdY = 1.0f;
-        final float pocketThresholdY = -1.0f;
-        final float pocketThresholdX = 7f;
-        final float pocketNegativeThresholdX = -7f;
+    public void detect(Float prox, Float light, float[] g, Integer inc) {
+        boolean isProxInPocket = mProximitySensor != null && prox != -1f && prox < PROXIMITY_THRESHOLD;
+        boolean isLightInPocket = mLightSensor != null && light != -1f && light < LIGHT_THRESHOLD;
+        boolean isGravityInPocket = mAccelerometerSensor != null && g != null && g.length == 3 && g[1] < GRAVITY_THRESHOLD;
+        boolean isInclinationInPocket= mAccelerometerSensor != null && inc != -1 && (inc > MIN_INCLINATION || inc < MAX_INCLINATION);
 
-        if (y > interactiveThresholdY) {
-            mIsInPocket = false;
-            hideOverlay();
-        } else if (y < pocketThresholdY) {
-            mIsInPocket = true;
-            if (!mIsUnlocked) {
-                showOverlay();
-            }
-        } else if (x > pocketThresholdX || x < pocketNegativeThresholdX) {
-            mIsInPocket = true;
-            if (!mIsUnlocked) {
-                showOverlay();
-            }
-        } else if (x < pocketThresholdX || x > pocketNegativeThresholdX) {
-            mIsInPocket = false;
-            hideOverlay();
+        mIsInPocket = isProxInPocket;
+        if (!mIsInPocket) {
+            mIsInPocket = isLightInPocket && isGravityInPocket && isInclinationInPocket;
         }
+        if (!mIsInPocket) {
+            mIsInPocket = isGravityInPocket && isInclinationInPocket;
+        }
+        mTimeoutHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (mIsInPocket && !mIsUnlocked) {
+                    showOverlay();
+                } else {
+                    hideOverlay();
+                }
+            }
+        }, 500);
     }
 
     @Override
@@ -262,6 +307,8 @@ public class PocketModeService extends SystemService {
         mTelephonyManager = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
         if (mSensorManager != null) {
             mAccelerometerSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            mLightSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+            mProximitySensor = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
         }
         mDoubleClickEffect = VibrationEffect.createPredefined(VibrationEffect.EFFECT_DOUBLE_CLICK);
         createOverlayView(mContext);
