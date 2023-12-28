@@ -67,7 +67,6 @@ final class PlatformCompatCache {
         USE_SHORT_FGS_USAGE_INTERACTION_TIME,
     };
 
-    private final PlatformCompat mPlatformCompat;
     private final IPlatformCompat mIPlatformCompatProxy;
     private final LongSparseArray<CacheItem> mCaches = new LongSparseArray<>();
     private final boolean mCacheEnabled;
@@ -77,17 +76,16 @@ final class PlatformCompatCache {
     private PlatformCompatCache(long[] compatChanges) {
         IBinder b = ServiceManager.getService(Context.PLATFORM_COMPAT_SERVICE);
         if (b instanceof PlatformCompat) {
-            mPlatformCompat = (PlatformCompat) ServiceManager.getService(
+            PlatformCompat platformCompat = (PlatformCompat) ServiceManager.getService(
                     Context.PLATFORM_COMPAT_SERVICE);
             for (long changeId: compatChanges) {
-                mCaches.put(changeId, new CacheItem(mPlatformCompat, changeId));
+                mCaches.put(changeId, new CacheItem(platformCompat, changeId));
             }
             mIPlatformCompatProxy = null;
             mCacheEnabled = true;
         } else {
             // we are in UT where the platform_compat is not running within the same process
             mIPlatformCompatProxy = IPlatformCompat.Stub.asInterface(b);
-            mPlatformCompat = null;
             mCacheEnabled = false;
         }
     }

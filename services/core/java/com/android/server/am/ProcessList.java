@@ -518,12 +518,6 @@ public final class ProcessList {
     private PlatformCompat mPlatformCompat = null;
 
     /**
-     * The server socket in system_server, zygote will connect to it
-     * in order to send unsolicited messages to system_server.
-     */
-    private LocalSocket mSystemServerSocketForZygote;
-
-    /**
      * Maximum number of bytes that an incoming unsolicited zygote message could be.
      * To be updated if new message type needs to be supported.
      */
@@ -660,7 +654,6 @@ public final class ProcessList {
      */
     final class IsolatedUidRangeAllocator {
         private final int mFirstUid;
-        private final int mNumUidRanges;
         private final int mNumUidsPerRange;
         /**
          * We map the uid range [mFirstUid, mFirstUid + mNumUidRanges * mNumUidsPerRange)
@@ -674,10 +667,10 @@ public final class ProcessList {
         IsolatedUidRangeAllocator(int firstUid, int lastUid, int numUidsPerRange) {
             mFirstUid = firstUid;
             mNumUidsPerRange = numUidsPerRange;
-            mNumUidRanges = (lastUid - firstUid + 1) / numUidsPerRange;
-            mAvailableUidRanges = new BitSet(mNumUidRanges);
+            int numUidRanges = (lastUid - firstUid + 1) / numUidsPerRange;
+            mAvailableUidRanges = new BitSet(numUidRanges);
             // Mark all as available
-            mAvailableUidRanges.set(0, mNumUidRanges);
+            mAvailableUidRanges.set(0, numUidRanges);
         }
 
         @GuardedBy("ProcessList.this.mService")
@@ -928,11 +921,15 @@ public final class ProcessList {
                         }
                     }
             );
-            // Start listening on incoming connections from zygotes.
-            mSystemServerSocketForZygote = createSystemServerSocketForZygote();
-            if (mSystemServerSocketForZygote != null) {
+            /*
+             * Start listening on incoming connections from zygotes.
+             * The server socket in system_server, zygote will connect to it
+             * in order to send unsolicited messages to system_server.
+             */
+            LocalSocket systemServerSocketForZygote = createSystemServerSocketForZygote();
+            if (systemServerSocketForZygote != null) {
                 sKillHandler.getLooper().getQueue().addOnFileDescriptorEventListener(
-                        mSystemServerSocketForZygote.getFileDescriptor(),
+                        systemServerSocketForZygote.getFileDescriptor(),
                         EVENT_INPUT, this::handleZygoteMessages);
             }
             mAppExitInfoTracker.init(mService);

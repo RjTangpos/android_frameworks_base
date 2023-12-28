@@ -29,7 +29,6 @@ import java.io.PrintWriter;
  * The state info of app when it's cached, used by the optimizer.
  */
 final class ProcessCachedOptimizerRecord {
-    private final ProcessRecord mApp;
 
     private final ActivityManagerGlobalLock mProcLock;
 
@@ -318,7 +317,6 @@ final class ProcessCachedOptimizerRecord {
     }
 
     ProcessCachedOptimizerRecord(ProcessRecord app) {
-        mApp = app;
         mProcLock = app.mService.mProcLock;
     }
 

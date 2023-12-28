@@ -172,7 +172,6 @@ public class BroadcastDispatcher {
     private final BroadcastQueueImpl mQueue;
     private final BroadcastConstants mConstants;
     private final Handler mHandler;
-    private AlarmManagerInternal mAlarm;
 
     // Current alarm targets; mapping uid -> in-flight alarm count
     final SparseIntArray mAlarmUids = new SparseIntArray();
@@ -519,8 +518,8 @@ public class BroadcastDispatcher {
      */
     public void start() {
         // Set up broadcast alarm tracking
-        mAlarm = LocalServices.getService(AlarmManagerInternal.class);
-        mAlarm.registerInFlightListener(mAlarmListener);
+        AlarmManagerInternal alarm = LocalServices.getService(AlarmManagerInternal.class);
+        alarm.registerInFlightListener(mAlarmListener);
     }
 
     /**

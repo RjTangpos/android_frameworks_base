@@ -34,7 +34,6 @@ import android.widget.TextView;
 
 final class AppErrorDialog extends BaseErrorDialog implements View.OnClickListener {
 
-    private final ActivityManagerService mService;
     private final ActivityManagerGlobalLock mProcLock;
     private final AppErrorResult mResult;
     private final ProcessRecord mProc;
@@ -60,7 +59,6 @@ final class AppErrorDialog extends BaseErrorDialog implements View.OnClickListen
         super(context);
         Resources res = context.getResources();
 
-        mService = service;
         mProcLock = service.mProcLock;
         mProc = data.proc;
         mResult = data.result;

@@ -174,7 +174,6 @@ public final class BatteryStatsService extends IBatteryStats.Stub
     private static final String MIN_CONSUMED_POWER_THRESHOLD_KEY = "min_consumed_power_threshold";
     private static final String EMPTY = "Empty";
 
-    private final HandlerThread mHandlerThread;
     private final Handler mHandler;
     private final Object mLock = new Object();
 
@@ -366,9 +365,9 @@ public final class BatteryStatsService extends IBatteryStats.Stub
                 return (umi != null) ? umi.getUserIds() : null;
             }
         };
-        mHandlerThread = new HandlerThread("batterystats-handler");
-        mHandlerThread.start();
-        mHandler = new Handler(mHandlerThread.getLooper());
+        HandlerThread handlerThread = new HandlerThread("batterystats-handler");
+        handlerThread.start();
+        mHandler = new Handler(handlerThread.getLooper());
 
         mPowerProfile = new PowerProfile(context);
 

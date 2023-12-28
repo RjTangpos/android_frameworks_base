@@ -25,21 +25,20 @@ import android.view.WindowManager;
 final class AppWaitingForDebuggerDialog extends BaseErrorDialog {
     final ActivityManagerService mService;
     final ProcessRecord mProc;
-    private CharSequence mAppName;
-    
+
     public AppWaitingForDebuggerDialog(ActivityManagerService service,
             Context context, ProcessRecord app) {
         super(context);
         mService = service;
         mProc = app;
-        mAppName = context.getPackageManager().getApplicationLabel(app.info);
+        CharSequence appName = context.getPackageManager().getApplicationLabel(app.info);
 
         setCancelable(false);
 
         StringBuilder text = new StringBuilder();
-        if (mAppName != null && mAppName.length() > 0) {
+        if (appName != null && appName.length() > 0) {
             text.append("Application ");
-            text.append(mAppName);
+            text.append(appName);
             text.append(" (process ");
             text.append(app.processName);
             text.append(")");
